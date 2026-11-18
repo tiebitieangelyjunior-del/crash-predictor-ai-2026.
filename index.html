@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1020">
+<title>CRASH PREDICTOR AI</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#151d32;--line:#2a3856;--muted:#aab5ca;--green:#35d07f;--blue:#6eb7ff;--amber:#ffc66b}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#101a32,#080c17);color:#f4f7ff;font:15px system-ui,Arial}
+main{max-width:900px;margin:auto;padding:16px}.top{display:flex;align-items:center;gap:12px}.logo{width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:#153d31;color:var(--green);font-weight:900;font-size:21px}h1{font-size:20px;margin:0}h2{font-size:16px;margin:0 0 12px}.muted,small{color:var(--muted)}.tag{display:inline-block;color:#a7f3c8;background:#123a2b;padding:4px 9px;border-radius:20px;font-size:11px;margin-top:5px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:15px;margin-top:14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stat{background:#0d1629;padding:12px;border-radius:12px}.stat b{display:block;font-size:22px;margin-top:4px}.stat small{font-size:12px}
+button,input,select,textarea{font:inherit;color:#fff;background:#0c1426;border:1px solid var(--line);border-radius:10px;padding:11px;width:100%}button{background:#16864e;border:0;font-weight:700;margin-top:8px}button.alt{background:#293751}button.warn{background:#744b1d}button.danger{background:#63313b}
+textarea{min-height:80px}label{display:block;font-size:13px;color:var(--muted);margin:9px 0 5px}.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}.pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.pill{background:#293751;padding:6px 9px;border-radius:9px;font-weight:700;font-size:12px}.low{color:#6eb7ff}.mid{color:#c3a0ff}.high{color:var(--amber)}
+.notice{font-size:12px;line-height:1.5;color:var(--muted)}.status{font-size:13px;color:#a7f3c8;margin-top:8px;min-height:18px}
+canvas{width:100%;height:180px;background:#0d1629;border-radius:10px;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:8px;border-bottom:1px solid var(--line)}th{color:var(--muted)}
+#preview{max-width:100%;max-height:260px;display:none;margin-top:10px;border-radius:10px}
+@media(min-width:650px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style></head>
+<body><main>
+<header class="top"><div class="logo">CP</div><div><h1>CRASH PREDICTOR AI</h1><small>Analyseur multi-jeux • Version 1.0</small><div class="tag">PROTOYPE WEB GRATUIT</div></div></header>
+
+<section class="card">
+<h2>1. Ajouter des résultats</h2>
+<label for="game">Jeu / plateforme</label>
+<select id="game"><option>Aviator — Betclic</option><option>Aviator — autre plateforme</option><option>Crash — autre jeu</option></select>
+<label for="manual">Saisie des multiplicateurs terminés</label>
+<textarea id="manual" placeholder="Exemple : 1.04, 2.15, 1.32, 4.20"></textarea>
+<button id="add">Enregistrer les multiplicateurs</button>
+<div class="row">
+<div><label for="imageFile">Importer une capture d'écran</label><input id="imageFile" type="file" accept="image/*"></div>
+<div><label for="csvFile">Importer un fichier CSV</label><input id="csvFile" type="file" accept=".csv,text/csv"></div>
+</div>
+<img id="preview" alt="Aperçu de la capture">
+<button class="alt" id="ocr">Lire la capture avec OCR</button>
+<div id="status" class="status">En attente de données.</div>
+<p class="notice">L'OCR lit le texte visible dans une capture. Vérifie les valeurs détectées avant de les ajouter : il peut confondre certains chiffres.</p>
+</section>
+
+<section class="card">
+<h2>2. Tableau de bord</h2>
+<div class="grid">
+<div class="stat"><small>Résultats enregistrés</small><b id="count">0</b></div>
+<div class="stat"><small>Moyenne observée</small><b id="avg">—</b></div>
+<div class="stat"><small>Fréquence sous 2x</small><b id="under">—</b></div>
+<div class="stat"><small>Fréquence à 2x ou plus</small><b id="over">—</b></div>
+</div>
+<canvas id="chart" width="800" height="180"></canvas>
+<div class="pills" id="recent"><span class="muted">Aucun résultat enregistré.</span></div>
+</section>
+
+<section class="card">
+<h2>3. Historique détaillé</h2>
+<div class="row"><button class="alt" id="export">Exporter CSV</button><button class="danger" id="clear">Effacer l'historique</button></div>
+<div style="overflow-x:auto;margin-top:10px"><table><thead><tr><th>#</th><th>Jeu</th><th>Multiplicateur</th><th>Date d'ajout</th></tr></thead><tbody id="tbody"><tr><td colspan="4" class="muted">Aucune donnée.</td></tr></tbody></table></div>
+</section>
+
+<section class="card">
+<h2>4. Analyse et limites</h2>
+<div id="analysis" class="notice">Ajoute des résultats pour voir les statistiques descriptives.</div>
+<p class="notice"><b>Transparence :</b> cette version est un analyseur local. Elle ne se connecte pas à Betclic, ne lit pas les autres onglets et ne récupère pas automatiquement les manches. Une vraie collecte automatique nécessitera un flux/API autorisé par l'opérateur ou l'éditeur. Les fréquences passées ne prédisent pas avec certitude le prochain multiplicateur. Aucun signal de pari n'est généré.</p>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+const $=id=>document.getElementById(id),KEY='cpai_v1_records';
+let records=[];try{records=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){records=[]}
+let img=null;
+const persist=()=>localStorage.setItem(KEY,JSON.stringify(records));
+function parseNums(s){return (s.match(/\d{1,5}(?:[.,]\d{1,3})?/g)||[]).map(x=>Number(x.replace(',','.'))).filter(x=>Number.isFinite(x)&&x>=1&&x<=100000)}
+function addValues(nums){let game=$('game').value,added=0;nums.forEach(n=>{records.push({game,value:n,at:new Date().toISOString()});added++});persist();render();$('status').textContent=added+' résultat(s) enregistré(s).'}
+function render(){
+let vals=records.map(r=>r.value),n=vals.length;$('count').textContent=n;
+if(!n){$('avg').textContent='—';$('under').textContent='—';$('over').textContent='—';$('recent').innerHTML='<span class="muted">Aucun résultat enregistré.</span>';$('analysis').textContent='Ajoute des résultats pour voir les statistiques descriptives.';$('tbody').innerHTML='<tr><td colspan="4" class="muted">Aucune donnée.</td></tr>';draw();return}
+let avg=vals.reduce((a,b)=>a+b,0)/n,u=vals.filter(v=>v<2).length,o=n-u;
+$('avg').textContent=avg.toFixed(2)+'x';$('under').textContent=(100*u/n).toFixed(1)+'%';$('over').textContent=(100*o/n).toFixed(1)+'%';
+$('recent').innerHTML=vals.slice(-24).reverse().map(v=>`<span class="pill ${v<2?'low':v<10?'mid':'high'}">${v.toFixed(2)}x</span>`).join('');
+$('analysis').textContent=`Sur ${n} résultat(s), ${u} (${(100*u/n).toFixed(1)} %) sont sous 2x et ${o} (${(100*o/n).toFixed(1)} %) sont à 2x ou plus. Minimum : ${Math.min(...vals).toFixed(2)}x. Maximum : ${Math.max(...vals).toFixed(2)}x. Ces chiffres décrivent seulement les données enregistrées.`;
+$('tbody').innerHTML=records.slice(-100).reverse().map((r,i)=>`<tr><td>${n-i}</td><td>${r.game}</td><td>${r.value.toFixed(2)}x</td><td>${new Date(r.at).toLocaleString('fr-FR')}</td></tr>`).join('');draw()
+}
+function draw(){let c=$('chart'),x=c.getContext('2d'),w=c.width,h=c.height;x.clearRect(0,0,w,h);x.strokeStyle='#33415e';for(let j=1;j<5;j++){let y=j*h/5;x.beginPath();x.moveTo(30,y);x.lineTo(w-8,y);x.stroke()}let v=records.slice(-50).map(r=>r.value);if(!v.length){x.fillStyle='#aab5ca';x.fillText('Le graphique apparaîtra après import.',30,90);return}let max=Math.max(5,...v),step=(w-45)/Math.max(1,v.length-1);x.strokeStyle='#35d07f';x.lineWidth=3;x.beginPath();v.forEach((a,i)=>{let px=30+i*step,py=h-15-a/max*(h-30);i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();x.fillStyle='#aab5ca';x.fillText(max.toFixed(1)+'x',4,13)}
+$('add').onclick=()=>{let nums=parseNums($('manual').value);if(!nums.length){$('status').textContent='Entre au moins un multiplicateur valide.';return}addValues(nums);$('manual').value=''};
+$('imageFile').onchange=e=>{img=e.target.files[0]||null;if(img){$('preview').src=URL.createObjectURL(img);$('preview').style.display='block';$('status').textContent='Capture chargée.'}};
+$('ocr').onclick=async()=>{if(!img){$('status').textContent='Choisis d’abord une capture.';return}if(!window.Tesseract){$('status').textContent='OCR indisponible : vérifie la connexion puis recharge.';return}$('ocr').disabled=true;$('status').textContent='Lecture OCR en cours…';try{let r=await Tesseract.recognize(img,'eng',{logger:m=>{if(m.status)$('status').textContent=m.status+(m.progress?' '+Math.round(m.progress*100)+'%':'')}});let nums=parseNums(r.data.text||'');$('manual').value=nums.map(v=>v.toFixed(2)).join(', ');$('status').textContent=nums.length+' valeur(s) détectée(s). Vérifie puis appuie sur Enregistrer.'}catch(e){$('status').textContent='Erreur OCR : essaie une image plus nette.'}$('ocr').disabled=false};
+$('csvFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;let t=await f.text(),nums=parseNums(t);if(nums.length)addValues(nums);else $('status').textContent='Aucun multiplicateur reconnu dans le CSV.'};
+$('export').onclick=()=>{let lines=['jeu,multiplicateur,date',...records.map(r=>`"${r.game}",${r.value},${r.at}`)],a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}));a.download='crash-predictor-ai.csv';a.click();URL.revokeObjectURL(a.href)};
+$('clear').onclick=()=>{if(confirm('Effacer toutes les données de ce navigateur ?')){records=[];persist();render();$('status').textContent='Historique effacé.'}};
+render();
+</script></body></html>
